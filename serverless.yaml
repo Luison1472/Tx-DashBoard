@@ -1,0 +1,56 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: interchainexplorer
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: nine-chronicle-monitor
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+service: nine-chronicle-monitor
+
+plugins:
+
+provider:
+  name: aws
+  region: ap-northeast-2
+  runtime: nodejs20.x
+  role: arn:aws:iam::211125689225:role/lambda-role-interchain-explorer
+  tags:
+    Name: 9c Monitor
+    Project: 9c Monitor
+    Owner: Inseo
+    Team: 9c
+  environment:
+    DB_USERNAME: ${ssm:/9c-monitor/db/username}
+    DB_PASSWORD: ${ssm:/9c-monitor/db/password}
+    addresses: ${ssm:/9c-monitor/address}
+    privatekeys: ${ssm:/9c-monitor/privatekeys}
+
+package:
+  exclude:
+    - node_modules/**
+functions:
+  main:
+    handler: dist/lambda.handler
+    events:
+      - httpApi:  # HTTP API Gateway 사용
+          method: GET  # 모든 메서드 허용
+          path: /  # 기본 경로
+      - httpApi:
+          method: GET
+          path: /api/endpoint
+      - httpApi:
+          method: GET
+          path: /api/send
+      - httpApi:
+          method: GET
+          path: /api/check
+      - httpApi:
+          method: GET
+          path: /api/status
+      - httpApi:
+          method: GET
+          path: /api/status/detail
+      - httpApi:
+          method: GET
+          path: /api/status/lost
+      - httpApi:
+          method: GET
+          path: /api/distinct-endpoints
