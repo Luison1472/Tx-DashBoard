@@ -41,6 +41,7 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
+.development.env
 
 # temp directory
 .temp
@@ -59,3 +60,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /contract/typechain-types/
 /.development.env
 /.serverless/
+/docker-compose.yml

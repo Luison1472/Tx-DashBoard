@@ -3,5 +3,4 @@ dist
 .git
 .env
 *.log
-.dockerignore
-.development.env
+
