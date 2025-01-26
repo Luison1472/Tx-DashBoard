@@ -76,41 +76,54 @@ export class ApiService {
     }
 
     public async getRPCEndPoints() {
-        const {data} = await firstValueFrom(
-            this.httpService.get(this.endPointListURL).pipe(
-                catchError((error: AxiosError) => {
-                    console.log('Error fetching transaction history:', error.message);
-                    throw new Error('An error occurred while fetching transaction history.');
-                }),
-            ),
-        );
-        const odinRPCEndpoints = data[0].rpcEndpoints['headless.gql'];
-        const heimdallRPCEndpoints = data[1].rpcEndpoints['headless.gql'];
-        return [odinRPCEndpoints, heimdallRPCEndpoints];
-    }
+    console.log(`🚀 getRPCEndPoints() 실행!`);
+    
+    const {data} = await firstValueFrom(
+        this.httpService.get(this.endPointListURL).pipe(
+            catchError((error: AxiosError) => {
+                console.log('❌ Error fetching RPC endpoints:', error.message);
+                throw new Error('RPC 엔드포인트 조회 중 오류 발생.');
+            }),
+        ),
+    );
+
+    console.log(`✅ RPC 엔드포인트 가져옴!`, data);
+    return [data[0].rpcEndpoints['headless.gql'], data[1].rpcEndpoints['headless.gql']];
+}
+
 
     public async send(groupName: string, rpcEndpoints: string[], timeStamp: Date) {
-        for (let i = 0; i < rpcEndpoints.length; i++) {
-            if(i >= this.accounts.length) //만약 엔드포인트가 훨씬 더 늘어났을 경우 계정 생성 바람.
-                break;
-            const sender =   this.accounts[i].address;
-            const recipient = this.accounts[(i + 1) % rpcEndpoints.length].address; // 다음사람한테 주기.
-            let action;
-            if(groupName === 'odin')
-                action = this.makeTransferInOdin(sender, recipient);
-            else
-                action = this.makeTransferInHeimdall(sender, recipient);
-            try {
-                const txHash = await this.sendTx(rpcEndpoints[i], action, this.accounts[i]);
-                console.log('Network', rpcEndpoints[i], 'sendtx', txHash);
-                console.log('Sender', sender, 'Recipient', recipient);
-                await this.nodeHealthService.updateTempTx(rpcEndpoints[i], txHash, timeStamp);
-            } catch (error) {
-                console.error(`Error sending transaction to ${rpcEndpoints[i]}:`, error.message || error);
-                await this.nodeHealthService.updateFailedTempTx(groupName, rpcEndpoints[i], timeStamp)
-            }
-        }
+    console.log(`🔥 send() 실행됨! groupName: ${groupName}, endpoints: ${rpcEndpoints.length}`);
+        console.log('🛠️ this.accounts 확인:', this.accounts);
+
+        const uniqueTxs = new Set();
+        
+    for (let i = 0; i < rpcEndpoints.length; i++) {
+    if (i >= this.accounts.length) continue;
+
+    const sender = this.accounts[i].address;
+    const recipient = this.accounts[(i + 1) % this.accounts.length].address;
+
+    if (uniqueTxs.has(`${sender}-${recipient}`)) {
+        console.warn(`⚠️ 중복 방지: 이미 실행된 트랜잭션! Sender: ${sender}, Recipient: ${recipient}`);
+        continue; // 중복 방지
     }
+    
+    uniqueTxs.add(`${sender}-${recipient}`); // 트랜잭션 실행 기록 저장
+    let action = groupName === 'odin'
+        ? this.makeTransferInOdin(sender, recipient)
+        : this.makeTransferInHeimdall(sender, recipient);
+
+    try {
+        const txHash = await this.sendTx(rpcEndpoints[i], action, this.accounts[i]);
+        console.log(`✅ 트랜잭션 성공! Endpoint: ${rpcEndpoints[i]}, TxHash: ${txHash}`);
+        await this.nodeHealthService.updateTempTx(rpcEndpoints[i], txHash, timeStamp);
+    } catch (error) {
+        console.error(`❌ 트랜잭션 실패! Endpoint: ${rpcEndpoints[i]}, Error:`, error.message);
+        await this.nodeHealthService.updateFailedTempTx(groupName, rpcEndpoints[i], timeStamp);
+    }
+}
+}
 
     public async saveTemp(groupName: string, rpcEndpoints: string[], timeStamp: Date) {
         for (let i = 0; i < rpcEndpoints.length; i++) {

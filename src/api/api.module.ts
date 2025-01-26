@@ -18,11 +18,11 @@ import { join } from 'path';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'ninechronicle-monitor.cfwwueuwspfo.ap-northeast-2.rds.amazonaws.com',
+      host: process.env.DB_HOST,
       port: 3306,
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
-      database: 'node_health',
+      database: process.env.DB_NAME,
       entities: [NodeHealth],
       synchronize: true,
     }),
